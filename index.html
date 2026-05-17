@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Один инженер вместо студии</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Science+Gothic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        #root { width: 100vw; height: 100vh; }
+
+        #frame-horiz {
+            display: none;
+            width: 100vw; height: 100vh; border: none;
+            position: fixed; top: 0; left: 0; z-index: 0;
+        }
+
+        .switcher {
+            position: fixed; bottom: 20px; right: 20px; z-index: 99999;
+            display: flex; gap: 6px;
+            background: rgba(15,15,20,0.85); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 5px;
+        }
+        .switcher button {
+            background: transparent; border: none; color: #666;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+            letter-spacing: 1px; padding: 9px 14px; border-radius: 10px;
+            cursor: pointer; transition: all 0.25s; white-space: nowrap;
+        }
+        .switcher button:hover { color: #aaa; background: rgba(255,255,255,0.04); }
+        .switcher button.active {
+            background: rgba(0, 255, 136, 0.12); color: #00ff88; font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .switcher { bottom: 14px; right: 50%; transform: translateX(50%); }
+            .switcher button { font-size: 0.65rem; padding: 7px 10px; }
+        }
+    </style>
+  <script type="module" crossorigin src="./assets/index-DG2vTH_B.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DnBSoNO4.css">
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="root"></div>
+    <iframe id="frame-horiz" title="Горизонтальная версия" allow="clipboard-write"></iframe>
+
+    <div class="switcher">
+        <button id="btn-cube" class="active" data-version="cube">◻ КУБ</button>
+        <button id="btn-horiz" data-version="horiz">▬ ГОРИЗОНТ</button>
+    </div>
+
+    <script>
+        const rootDiv = document.getElementById('root')
+        const frame = document.getElementById('frame-horiz')
+        const btnCube = document.getElementById('btn-cube')
+        const btnHoriz = document.getElementById('btn-horiz')
+
+        let horizLoaded = false
+
+        function loadHorizFrame(cb) {
+            if (horizLoaded) {
+                cb?.()
+                return
+            }
+            frame.addEventListener('load', function onLoad() {
+                frame.removeEventListener('load', onLoad)
+                horizLoaded = true
+                cb?.()
+            }, { once: true })
+            frame.src = '/version-horizontal/index.html'
+        }
+
+        function reinitHorizFrame() {
+            try {
+                const win = frame.contentWindow
+                if (win && typeof win.reinitHorizontalScroll === 'function') {
+                    win.reinitHorizontalScroll()
+                }
+            } catch (_) {}
+        }
+
+        function go(v) {
+            if (v === 'cube') {
+                rootDiv.style.display = 'block'
+                frame.style.display = 'none'
+                document.body.style.overflow = ''
+                document.documentElement.style.overflow = ''
+                requestAnimationFrame(() => {
+                    window.dispatchEvent(new Event('scroll'))
+                })
+                btnCube.classList.add('active')
+                btnHoriz.classList.remove('active')
+            } else {
+                rootDiv.style.display = 'none'
+                frame.style.display = 'block'
+                document.body.style.overflow = 'hidden'
+                document.documentElement.style.overflow = 'hidden'
+                window.scrollTo(0, 0)
+                btnHoriz.classList.add('active')
+                btnCube.classList.remove('active')
+
+                loadHorizFrame(() => {
+                    requestAnimationFrame(() => {
+                        reinitHorizFrame()
+                        try { frame.focus({ preventScroll: true }) } catch (_) {}
+                    })
+                })
+            }
+            localStorage.setItem('swarm-v', v)
+        }
+
+        btnCube.onclick = () => go('cube')
+        btnHoriz.onclick = () => go('horiz')
+
+        document.onkeydown = e => {
+            if (e.key === '1') go('cube')
+            if (e.key === '2') go('horiz')
+        }
+
+        // Старт (горизонт грузится только при первом переключении)
+        const saved = localStorage.getItem('swarm-v') || 'cube'
+        go(saved === 'horiz' ? 'horiz' : 'cube')
+    </script>
+
+</body>
+</html>
